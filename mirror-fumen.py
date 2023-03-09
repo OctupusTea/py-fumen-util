@@ -61,7 +61,7 @@ def _mirror_operation(operation):
             operation.rotation = MIRROR_ROTATION[operation.rotation]
             operation.x = FieldConstants.WIDTH - operation.x - 1
 
-def fumen_mirror(fumen_codes):
+def mirror_fumen(fumen_codes):
     mirrored_fumen = []
     for code in fumen_codes:
         input_pages = decoder.decode(code)
@@ -73,5 +73,5 @@ def fumen_mirror(fumen_codes):
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        for line in fumen_mirror(' '.join(sys.argv[1:]).split(' ')):
+        for line in mirror_fumen(' '.join(sys.argv[1:]).split(' ')):
             print(line)

@@ -12,4 +12,4 @@ def fumen_combiner(fumen_codes):
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        print(fumen_combiner(" ".join(sys.argv[1:]).split(" ")))
+        print(fumen_combiner(' '.join(sys.argv[1:]).split(' ')))
