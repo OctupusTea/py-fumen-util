@@ -16,5 +16,5 @@ def remove_comment(fumen_codes):
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        for line in remove_comment(' '.join(sys.argv[1:]).split(' ')):
+        for line in remove_comment(' '.join(sys.argv[1:]).split()):
             print(line)

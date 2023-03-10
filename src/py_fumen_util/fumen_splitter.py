@@ -16,5 +16,5 @@ def fumen_splitter(fumen_codes):
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        for line in fumen_splitter(' '.join(sys.argv[1:]).split(' ')):
+        for line in fumen_splitter(' '.join(sys.argv[1:]).split()):
             print(line)
