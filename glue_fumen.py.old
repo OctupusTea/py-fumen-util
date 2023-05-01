@@ -1,0 +1,185 @@
+# -*- coding: utf-8 -*-
+
+import re
+import sys
+
+from py_fumen.constants import FieldConstants
+from py_fumen import encoder, decoder
+from py_fumen.field import Field, Operation
+from py_fumen.page import Page, Flags
+
+PIECE_MAPPINGS = {
+    'T': [
+        [[0, -1], [0, 0], [-1, -1], [1, -1]],
+        [[0, -1], [0, 0], [-1, -1], [0, -2]],
+        [[1, 0], [0, 0], [2, 0], [1, -1]],
+        [[0, -1], [0, 0], [1, -1], [0, -2]],
+    ],
+    'I': [
+        [[1, 0], [0, 0], [2, 0], [3, 0]],
+        [[0, -2], [0, 0], [0, -1], [0, -3]],
+    ],
+    'L': [
+        [[-1, -1], [0, 0], [-2, -1], [0, -1]],
+        [[1, -1], [0, 0], [1, 0], [1, -2]],
+        [[1, 0], [0, 0], [2, 0], [0, -1]],
+        [[0, -1], [0, 0], [0, -2], [1, -2]],
+    ],
+    'J': [
+        [[1, -1], [0, 0], [0, -1], [2, -1]],
+        [[0, -1], [0, 0], [-1, -2], [0, -2]],
+        [[1, 0], [0, 0], [2, 0], [2, -1]],
+        [[0, -1], [0, 0], [1, 0], [0, -2]],
+    ],
+    'S': [
+        [[0, -1], [0, 0], [1, 0], [-1, -1]],
+        [[1, -1], [0, 0], [0, -1], [1, -2]],
+    ],
+    'Z': [
+        [[1, -1], [0, 0], [1, 0], [2, -1]],
+        [[0, -1], [0, 0], [-1, -1], [-1, -2]],
+    ],
+    'O': [
+        [[0, -1], [0, 0], [1, 0], [1, -1]],
+    ],
+}
+
+ROTATION_DICT = {
+    0: 'spawn',
+    1: 'left',
+    2: 'reverse',
+    3: 'right',
+}
+
+def check_rotation(x, y, field, pieces_arr, all_pieces_arr, remove_line_clear, depth=0):
+    piece = field.at(x, y)
+
+    found = False
+    leftover_pieces = None
+    mino_positions = []
+
+    for i, state in enumerate(PIECE_MAPPINGS[piece]):
+        mino_positions.clear()
+        new_piece_arr = pieces_arr[:]
+        for pos in state:
+            pos_x, pos_y = x + pos[0], y + pos[1]
+            if pos_x < 0 or pos_x >= FieldConstants.WIDTH or pos_y < 0:
+                break
+            if field.at(pos_x, pos_y) == piece:
+                mino_positions.append([pos_x, pos_y])
+            else:
+                break
+
+        if len(mino_positions) == 4:
+            found_before = found
+            found = True
+
+            oper_piece = Operation(
+                piece_type=piece, rotation=ROTATION_DICT[i],
+                x=mino_positions[0][0], y=mino_positions[0][1]
+            )
+            new_piece_arr.append(oper_piece)
+
+            new_field = field.copy()
+            for pos in mino_positions:
+                new_field.set(*pos, 'X')
+            old_height = len(new_field.string().split('\n')) - 1
+            if remove_line_clear:
+                new_field = remove_line_clears(new_field)
+
+            height = len(new_field.string().split('\n')) - 1
+            x0, y0 = x, y
+            if old_height > height:
+                x0 = 0
+                y0 = height - 1
+
+            old_len = len(all_pieces_arr)
+            poss_piece_arr, leftover_pieces = scan_field(
+                x0, y0, new_field,
+                new_piece_arr, all_pieces_arr, remove_line_clear, depth+1
+            )
+
+            if leftover_pieces is None:
+                leftover_pieces = find_remaining_pieces(new_field)
+
+            if poss_piece_arr is not None and not leftover_pieces:
+                all_pieces_arr.append(poss_piece_arr)
+            elif old_len == len(all_pieces_arr):
+                if piece not in leftover_pieces:
+                    return found, leftover_pieces
+                else:
+                    found = found_before
+    return found, leftover_pieces
+
+def scan_field(x, y, field, pieces_arr, all_pieces_arr, remove_line_clear, depth=0):
+    x0 = x
+    for new_y in range(y, -1, -1):
+        for new_x in range(x0, FieldConstants.WIDTH):
+            if field.at(new_x, new_y) != 'X' and field.at(new_x, new_y) != '_':
+                rotation_worked, leftover = check_rotation(
+                    new_x, new_y, field,
+                    pieces_arr, all_pieces_arr, remove_line_clear, depth
+                )
+                if rotation_worked:
+                    return None, leftover
+        x0 = 0
+    return pieces_arr, None
+
+def make_empty_field(field, height):
+    empty_field = field.copy()
+    for y in range(height-1, -1, -1):
+        for x in range(0, FieldConstants.WIDTH):
+            piece = empty_field.at(x, y)
+            if piece in 'TIJLZSO':
+                empty_field.set(x, y, '_')
+    return empty_field
+
+def remove_line_clears(field):
+    lines = [line for line in field.string().split('\n') if line != 'XXXXXXXXXX']
+    return Field.create(''.join(lines[:-1]), lines[-1:])
+
+def find_remaining_pieces(field):
+    return [p for p in 'TILJSZO' if p in ''.join(field.string().splitlines()[:-1])]
+
+def glue_fumen(fumen_codes, remove_line_clear=True):
+    all_pieces_arr = []
+    all_fumens = []
+    fumen_issues = 0
+
+    for code in fumen_codes:
+        input_pages = decoder.decode(code)
+        this_glue_fumens = []
+        for page in input_pages:
+            field = remove_line_clears(page.get_field())
+            height = len(field.string().split('\n')) - 1
+            empty_field = make_empty_field(field, height)
+            all_pieces_arr.clear()
+
+            scan_field(0, height - 1, field, [], all_pieces_arr, remove_line_clear)
+
+            if not all_pieces_arr:
+                print(code, "couldn't be glued")
+                fumen_issues += 1
+
+            for pieces_arr in all_pieces_arr:
+                pages = [Page(field=empty_field, operation=pieces_arr[0])]
+                for operation in pieces_arr[1:]:
+                    pages.append(Page(operation=operation))
+                this_glue_fumens.append(encoder.encode(pages))
+
+            if len(all_pieces_arr) > 1:
+                all_fumens.append(
+                    'Warning: {} led to {} outputs: {}'.format(
+                        code, len(all_pieces_arr), ' '.join(this_glue_fumens)
+                    )
+                )
+        all_fumens += this_glue_fumens
+
+    if fumen_issues > 0:
+        print("Warning: {} fumen couldn't be glued".format(fumen_issues))
+    return all_fumens
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        for line in glue_fumen(' '.join(sys.argv[1:]).split(' ')):
+            print(line)

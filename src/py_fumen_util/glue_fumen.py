@@ -1,88 +1,69 @@
 # -*- coding: utf-8 -*-
 
-import re
 import sys
 
-from py_fumen.constants import FieldConstants
-from py_fumen import encoder, decoder
-from py_fumen.field import Field, Operation
-from py_fumen.page import Page, Flags
-
-MINOS = 'TILJSZO'
-LINECLEAR = 'X' * FieldConstants.WIDTH
+from py_fumen_py import *
 
 PIECE_MAPPINGS = {
-    'T': [
-        [[0, -1], [0, 0], [-1, -1], [1, -1]],
-        [[0, -1], [0, 0], [-1, -1], [0, -2]],
-        [[1, 0], [0, 0], [2, 0], [1, -1]],
-        [[0, -1], [0, 0], [1, -1], [0, -2]],
-    ],
-    'I': [
+    Mino.I: [
         [[1, 0], [0, 0], [2, 0], [3, 0]],
         [[0, -2], [0, 0], [0, -1], [0, -3]],
     ],
-    'L': [
+    Mino.L: [
         [[-1, -1], [0, 0], [-2, -1], [0, -1]],
         [[1, -1], [0, 0], [1, 0], [1, -2]],
         [[1, 0], [0, 0], [2, 0], [0, -1]],
         [[0, -1], [0, 0], [0, -2], [1, -2]],
     ],
-    'J': [
+    Mino.O: [
+        [[0, -1], [0, 0], [1, 0], [1, -1]],
+    ],
+    Mino.Z: [
+        [[1, -1], [0, 0], [1, 0], [2, -1]],
+        [[0, -1], [0, 0], [-1, -1], [-1, -2]],
+    ],
+    Mino.T: [
+        [[0, -1], [0, 0], [-1, -1], [1, -1]],
+        [[0, -1], [0, 0], [-1, -1], [0, -2]],
+        [[1, 0], [0, 0], [2, 0], [1, -1]],
+        [[0, -1], [0, 0], [1, -1], [0, -2]],
+    ],
+    Mino.J: [
         [[1, -1], [0, 0], [0, -1], [2, -1]],
         [[0, -1], [0, 0], [-1, -2], [0, -2]],
         [[1, 0], [0, 0], [2, 0], [2, -1]],
         [[0, -1], [0, 0], [1, 0], [0, -2]],
     ],
-    'S': [
+    Mino.S: [
         [[0, -1], [0, 0], [1, 0], [-1, -1]],
         [[1, -1], [0, 0], [0, -1], [1, -2]],
     ],
-    'Z': [
-        [[1, -1], [0, 0], [1, 0], [2, -1]],
-        [[0, -1], [0, 0], [-1, -1], [-1, -2]],
-    ],
-    'O': [
-        [[0, -1], [0, 0], [1, 0], [1, -1]],
-    ],
 }
-
-ROTATION_DICT = {
-    0: 'spawn',
-    1: 'left',
-    2: 'reverse',
-    3: 'right',
-}
-
-def height(field):
-    return len(field.string().splitlines()[:-FieldConstants.GARBAGE_LINE])
 
 def is_inside(field, x, y):
-    return 0 <= x < FieldConstants.WIDTH and 0 <= y < height(field)
+    return 0 <= x < FieldConstants.WIDTH and 0 <= y < field.height()
 
 def place_piece(field, mino_positions):
-    new_field = field.copy()
     for x, y in mino_positions:
-        new_field.set(x, y, 'X')
-    return new_field
+        field.fill(x, y, Mino.X)
 
 def remove_line_clears(field):
     lines = []
     n_lineclear = 0
-    for line in field.string().splitlines()[:-FieldConstants.GARBAGE_LINE]:
-        if line == LINECLEAR:
+    for line in field:
+        if all(mino is Mino.X for mino in line):
             n_lineclear += 1
         else:
             lines.append(line)
-    return Field.create(
-        ''.join(lines),
-        field.string().splitlines()[-FieldConstants.GARBAGE_LINE:]
-    ), n_lineclear
+    return Field(field=lines, garbage=field[:0]), n_lineclear
 
 def find_remaining_pieces(field):
-    return [p for p in MINOS if p in ''.join(
-        field.string().splitlines()[:-FieldConstants.GARBAGE_LINE]
-    )]
+    remaining = set()
+    for line in field:
+        for mino in line:
+            if mino.is_colored():
+                remaining.add(mino)
+    return remaining
 
 def check_rotation(x, y, field, pieces_arr, all_pieces_arr):
     piece = field.at(x, y)
@@ -100,15 +81,15 @@ def check_rotation(x, y, field, pieces_arr, all_pieces_arr):
             found = True
             new_piece_arr = pieces_arr[:]
             new_piece_arr.append(
-                Operation(piece_type=piece, rotation=ROTATION_DICT[state],
+                Operation(mino=piece, rotation=Rotation(state).shifted(2),
                           x=mino_positions[0][0], y=mino_positions[0][1])
             )
 
-            new_field, n_lineclear = remove_line_clears(
-                    place_piece(field, mino_positions)
-            )
+            new_field = field.copy()
+            place_piece(new_field, mino_positions)
+            new_field, n_lineclear = remove_line_clears(new_field)
 
-            x0, y0 = (0, height(new_field)-1) if n_lineclear else (x, y)
+            x0, y0 = (0, new_field.height()-1) if n_lineclear else (x, y)
 
             old_len = len(all_pieces_arr)
             poss_piece_arr, leftover_pieces = scan_field(
@@ -130,7 +111,7 @@ def check_rotation(x, y, field, pieces_arr, all_pieces_arr):
 def scan_field(x0, y0, field, pieces_arr, all_pieces_arr):
     for y in range(y0, -1, -1):
         for x in range(x0 if y == y0 else 0, FieldConstants.WIDTH):
-            if field.at(x, y) != 'X' and field.at(x, y) != '_':
+            if field.at(x, y).is_colored():
                 rotation_worked, leftover = check_rotation(
                     x, y, field, pieces_arr, all_pieces_arr
                 )
@@ -139,14 +120,12 @@ def scan_field(x0, y0, field, pieces_arr, all_pieces_arr):
     return pieces_arr, None
 
 def make_empty_field(field):
-    field_string = field.string()
-    for mino in MINOS:
-        if mino in field_string:
-            field_string = field_string.replace(mino, '_')
-    return Field.create(
-        ''.join(field_string.splitlines()[:-FieldConstants.GARBAGE_LINE]),
-        ''.join(field_string.splitlines()[-FieldConstants.GARBAGE_LINE:])
-    )
+    field = field.copy()
+    for line in field:
+        for i, mino in enumerate(line):
+            if mino.is_colored():
+                line[i] = Mino._
+    return field
 
 def glue_fumen(fumen_codes):
     all_pieces_arr = []
@@ -154,14 +133,14 @@ def glue_fumen(fumen_codes):
     fumen_issues = 0
 
     for code in fumen_codes:
-        input_pages = decoder.decode(code)
+        input_pages = decode(code)
         this_glue_fumens = []
         for page in input_pages:
-            field, n_lineclear = remove_line_clears(page.get_field())
+            field, n_lineclear = remove_line_clears(page.field.copy())
             empty_field = make_empty_field(field)
             all_pieces_arr.clear()
 
-            scan_field(0, height(field) - 1, field, [], all_pieces_arr)
+            scan_field(0, field.height()-1, field, [], all_pieces_arr)
 
             if not all_pieces_arr:
                 print(code, "couldn't be glued")
@@ -171,7 +150,7 @@ def glue_fumen(fumen_codes):
                 pages = [Page(field=empty_field, operation=pieces_arr[0])]
                 for operation in pieces_arr[1:]:
                     pages.append(Page(operation=operation))
-                this_glue_fumens.append(encoder.encode(pages))
+                this_glue_fumens.append(encode(pages))
 
             if len(all_pieces_arr) > 1:
                 all_fumens.append(
