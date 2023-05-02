@@ -20,8 +20,8 @@ Commands are case-insensitive.
 |Split|Split each page into a Fumen||
 |Glue|Glue each Fumen page into tetromino placements|Decompile|
 |Unglue|Unglue Fumen placements into one page|Compile|
-|Gray|Gray out the last of each fumen|Grey|
-|Grayall|Gray out all pages of each fumen|Greyall|
+|Gray|Gray out the last of each Fumen|Grey|
+|Grayall|Gray out all pages of each Fumen|Greyall|
 |Lock|Lock the last page of each Fumen and append a new page||
 |Mirror|Mirror Fumen pages|Flip|
 |Uncomment|Uncomment Fumen pages||
