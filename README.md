@@ -4,6 +4,12 @@ Python implementation of [swng's FumenUtil](https://github.com/swng/FumenUtil), 
 ## Dependency
 - `py-fumen-py`: Python implementation of knewjade's `tetris-fumen` node module
 
+## Installation
+
+```bash
+python3 -m pip install py-fumen-util
+```
+
 ## Usage
 
 ```bash
