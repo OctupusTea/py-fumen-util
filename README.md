@@ -13,8 +13,11 @@ python3 -m pip install py-fumen-util
 ## Usage
 
 ```bash
-python3 -m py_fumen_util command fumen_code [fumen_code...]
+python3 -m py_fumen_util command [commmand...] file
 ```
+
+- `command`: Command(s) to execute on the Fumen(s).
+- `file`: File with Fumen strings, separated with whitespace and/or linebreak. Use "-" to read from standard input.
 
 ### Commands
 
