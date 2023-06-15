@@ -4,7 +4,7 @@ import sys
 
 from py_fumen_py import *
 
-def grayout_all(fumen_codes, print_error=True, keep_invalid=True):
+def prune_all(fumen_codes, print_error=True, keep_invalid=True):
     results = []
     for code in fumen_codes:
         try:
@@ -14,7 +14,7 @@ def grayout_all(fumen_codes, print_error=True, keep_invalid=True):
                     for line in page.field[:]:
                         for i, mino in enumerate(line):
                             if mino.is_colored():
-                                line[i] = Mino.X
+                                line[i] = Mino._
             results.append(encode(input_pages))
         except Exception as e:
             if keep_invalid:
@@ -26,5 +26,5 @@ def grayout_all(fumen_codes, print_error=True, keep_invalid=True):
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        for line in grayout_all(' '.join(sys.argv[1:]).split()):
+        for line in prune_all(' '.join(sys.argv[1:]).split()):
             print(line)

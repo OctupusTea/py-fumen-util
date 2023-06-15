@@ -127,44 +127,51 @@ def make_empty_field(field):
                 line[i] = Mino._
     return field
 
-def glue_fumen(fumen_codes):
+def disassemble(fumen_codes, print_error=True, keep_invalid=True):
     all_pieces_arr = []
-    all_fumens = []
+    results = []
     fumen_issues = 0
 
     for code in fumen_codes:
-        input_pages = decode(code)
-        this_glue_fumens = []
-        for page in input_pages:
-            field, n_lineclear = remove_line_clears(page.field.copy())
-            empty_field = make_empty_field(field)
-            all_pieces_arr.clear()
+        try:
+            input_pages = decode(code)
+            this_disassembles = []
+            for page in input_pages:
+                field, n_lineclear = remove_line_clears(page.field.copy())
+                empty_field = make_empty_field(field)
+                all_pieces_arr.clear()
 
-            scan_field(0, field.height()-1, field, [], all_pieces_arr)
+                scan_field(0, field.height()-1, field, [], all_pieces_arr)
 
-            if not all_pieces_arr:
-                print(code, "couldn't be glued")
-                fumen_issues += 1
+                if print_error and not all_pieces_arr:
+                    print(code, "couldn't be disassembled")
+                    fumen_issues += 1
 
-            for pieces_arr in all_pieces_arr:
-                pages = [Page(field=empty_field, operation=pieces_arr[0])]
-                for operation in pieces_arr[1:]:
-                    pages.append(Page(operation=operation))
-                this_glue_fumens.append(encode(pages))
+                for pieces_arr in all_pieces_arr:
+                    pages = [Page(field=empty_field, operation=pieces_arr[0])]
+                    for operation in pieces_arr[1:]:
+                        pages.append(Page(operation=operation))
+                    this_disassembles.append(encode(pages))
 
-            if len(all_pieces_arr) > 1:
-                all_fumens.append(
-                    'Warning: {} led to {} outputs: {}'.format(
-                        code, len(all_pieces_arr), ' '.join(this_glue_fumens)
+                if print_error and len(all_pieces_arr) > 1:
+                    results.append(
+                        'Warning: {} led to {} outputs: {}'.format(
+                            code, len(all_pieces_arr), ' '.join(this_disassembles)
+                        )
                     )
-                )
-        all_fumens += this_glue_fumens
+            results += this_disassembles
+        except:
+            if keep_invalid:
+                results.append(Page())
+            if print_error:
+                print(e)
 
-    if fumen_issues > 0:
-        print("Warning: {} fumen couldn't be glued".format(fumen_issues))
-    return all_fumens
+    if print_error and fumen_issues > 0:
+        print("Warning: {} fumen couldn't be disassembled".format(fumen_issues))
+
+    return results
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        for line in glue_fumen(' '.join(sys.argv[1:]).split()):
+        for line in disassemble(' '.join(sys.argv[1:]).split()):
             print(line)

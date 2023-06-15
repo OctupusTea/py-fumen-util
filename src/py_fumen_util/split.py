@@ -4,18 +4,15 @@ import sys
 
 from py_fumen_py import *
 
-def grayout_all(fumen_codes, print_error=True, keep_invalid=True):
+def split(fumen_codes, print_error=True, keep_invalid=True):
     results = []
     for code in fumen_codes:
         try:
             input_pages = decode(code)
             for page in input_pages:
-                if page.field:
-                    for line in page.field[:]:
-                        for i, mino in enumerate(line):
-                            if mino.is_colored():
-                                line[i] = Mino.X
-            results.append(encode(input_pages))
+                if input_pages[0].flags.colorize:
+                    page.flags.colorize = True
+                results.append(encode([page]))
         except Exception as e:
             if keep_invalid:
                 results.append('')
@@ -26,5 +23,5 @@ def grayout_all(fumen_codes, print_error=True, keep_invalid=True):
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        for line in grayout_all(' '.join(sys.argv[1:]).split()):
+        for line in split(' '.join(sys.argv[1:]).split()):
             print(line)

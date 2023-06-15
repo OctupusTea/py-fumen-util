@@ -21,16 +21,18 @@ python3 -m py_fumen_util command [commmand...] file
 
 ### Commands
 
-Commands are case-insensitive.
+ommands are case-insensitive.
 
 |Command|Description|Alias|
 |:-|:-|:-|
-|Combine|Combine multiple Fumens into one|Concat, Join|
-|Split|Split each page into a Fumen||
-|Glue|Glue each Fumen page into tetromino placements|Decompile|
-|Unglue|Unglue Fumen placements into one page|Compile|
-|Gray|Gray out the last of each Fumen|Grey|
-|Grayall|Gray out all pages of each Fumen|Greyall|
-|Lock|Lock the last page of each Fumen and append a new page||
-|Mirror|Mirror Fumen pages|Flip|
-|Uncomment|Uncomment Fumen pages||
+|join|Join multiple Fumens into one|combine concat|
+|split|Split each page into a Fumen||
+|assemble|Assemble Fumen placements into one page|compile, unglue|
+|disassemble|Disassemble each Fumen page into tetrimino placements|decompile, glue|
+|gray|Gray out the last page of each Fumen|grey|
+|grayall|Gray out all pages of each Fumen|greyall|
+|prune|Prune colored minos from the last page of each Fumen||
+|pruneall|Prune colored minos from all pages of each Fumen||
+|lock|Lock the last page of each Fumen and append a new page||
+|mirror|Mirror Fumen pages|flip|
+|uncomment|Uncomment Fumen pages||
