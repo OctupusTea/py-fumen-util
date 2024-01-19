@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "py_fumen_util"
-version = "0.3.0"
+version = "0.3.1"
 authors = [
 	{ name="Octupus Tea" },
 ]
@@ -17,7 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependecies = [
-	"py-fumen-py >= 0.0.4",
+	"py-fumen-py >= 0.0.9",
 ]
 
 [project.urls]
